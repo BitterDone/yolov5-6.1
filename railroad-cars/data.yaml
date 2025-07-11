@@ -1,0 +1,13 @@
+train: ../dataset/railroad-cars/train/images
+val: ../dataset/railroad-cars/valid/images
+test: ../dataset/railroad-cars/test/images
+
+nc: 11
+names: ['autorack', 'boxcar', 'cargo', 'container', 'flatcar', 'flatcar_bulkhead', 'gondola', 'hopper', 'locomotive', 'passenger', 'tank']
+
+roboflow:
+  workspace: innopolis-university-aurlu
+  project: railroad-car-detection
+  version: 13
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/innopolis-university-aurlu/railroad-car-detection/dataset/13
