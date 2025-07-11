@@ -1,6 +1,6 @@
-train: ../railroad-cars/train/images
-val: ../railroad-cars/valid/images
-test: ../railroad-cars/test/images
+train: railroad-cars/train/images
+val: railroad-cars/valid/images
+test: railroad-cars/test/images
 
 nc: 11
 names: ['autorack', 'boxcar', 'cargo', 'container', 'flatcar', 'flatcar_bulkhead', 'gondola', 'hopper', 'locomotive', 'passenger', 'tank']
