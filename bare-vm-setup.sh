@@ -1,6 +1,5 @@
 # 0943 11/7/2025
-TOKEN=token
-
+# TOKEN=token
 
 sudo apt-get remove -y --purge python3
 sudo apt-get autoremove -y
@@ -29,7 +28,10 @@ cd yolov5-6_1
 pip install -r requirements.txt
 
 pip uninstall torch -y
-pip install torch==1.10.0+cpu torchvision==0.11.1+cpu -f https://download.pytorch.org/whl/cpu/torch_stable.html
+# Choose one of these? WIP
+# pip install torch==1.10.0+cpu torchvision==0.11.1+cpu -f https://download.pytorch.org/whl/cpu/torch_stable.html
+
+# pip install torch==2.6.0+cu118 torchvision==0.17.1+cu118 torchaudio==2.6.0+cu118 --extra-index-url https://download.pytorch.org/whl/cu118
 
 pip install numpy==1.24.4 --force-reinstall
 
@@ -41,6 +43,11 @@ pip install numpy==1.24.4 --force-reinstall
 
 pip install opencv-python==4.5.5.64
 pip install pillow==9.5.0 --force-reinstall
+
+pip uninstall torch torchvision torchaudio -y
+pip cache purge
+pip install torch==2.2.0+cu118 torchvision==0.17.1+cu118 torchaudio==2.3.2 --extra-index-url https://download.pytorch.org/whl/cu118
+
 
 # python train.py --img 640 --batch 16 --epochs 100 --data railroad-cars/data.yaml --weights weights/yolov5n-v6_1.pt --name railroad_detector
 
