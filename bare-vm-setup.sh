@@ -1,4 +1,6 @@
-0943 11/7/2025
+# 0943 11/7/2025
+TOKEN=token
+
 
 sudo apt-get remove -y --purge python3
 sudo apt-get autoremove -y
@@ -22,7 +24,7 @@ libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-d
 pyenv install 3.9.0 
 pyenv global 3.9.0
 
-git clone https://github.com/BitterDone/yolov5-6.1.git
+git clone https://BitterDone:$TOKEN@github.com/BitterDone/yolov5-6.1.git
 cd yolov5-6_1
 pip install -r requirements.txt
 
