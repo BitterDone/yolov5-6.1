@@ -44,13 +44,12 @@ pip cache purge
 pip install networkx==3.1
 pip install torch==2.2.0+cu118 torchvision==0.17.1+cu118 torchaudio==2.3.1+cu118 --extra-index-url https://download.pytorch.org/whl/cu118
 
-
-# python train.py --img 640 --batch 16 --epochs 100 --weights "" --data railroad-cars/data.yaml --name railroad_detector
-# python train.py --img 640 --batch 16 --epochs 300 --weights "" --data railroad-cars/data.yaml --name railroad_detector
-# python train.py --img 640 --batch 16 --epochs 600 --weights "" --data railroad-cars/data.yaml --name railroad_detector
-# python train.py --img 640 --batch 16 --epochs 100 --weights "" --data railroad-cars/data.yaml --name railroad_detector_aug --image-weights  --hyp data/hyps/hyp.scratch-custom.yaml
-# python train.py --img 640 --batch 16 --epochs 300 --weights "" --data railroad-cars/data.yaml --name railroad_detector_aug --image-weights  --hyp data/hyps/hyp.scratch-custom.yaml
-# python train.py --img 640 --batch 16 --epochs 600 --weights "" --data railroad-cars/data.yaml --name railroad_detector_aug --image-weights  --hyp data/hyps/hyp.scratch-custom.yaml
+# python train.py --img 640 --batch 16 --epochs 100 --weights "" --cfg models/yolov5s.yaml --data railroad-cars/data.yaml --name railroad_detector
+# python train.py --img 640 --batch 16 --epochs 300 --weights "" --cfg models/yolov5s.yaml --data railroad-cars/data.yaml --name railroad_detector
+# python train.py --img 640 --batch 16 --epochs 600 --weights "" --cfg models/yolov5s.yaml --data railroad-cars/data.yaml --name railroad_detector
+# python train.py --img 640 --batch 16 --epochs 100 --weights "" --cfg models/yolov5s.yaml --data railroad-cars/data.yaml --name railroad_detector_aug --image-weights  --hyp data/hyps/hyp.scratch-custom.yaml
+# python train.py --img 640 --batch 16 --epochs 300 --weights "" --cfg models/yolov5s.yaml --data railroad-cars/data.yaml --name railroad_detector_aug --image-weights  --hyp data/hyps/hyp.scratch-custom.yaml
+# python train.py --img 640 --batch 16 --epochs 600 --weights "" --cfg models/yolov5s.yaml --data railroad-cars/data.yaml --name railroad_detector_aug --image-weights  --hyp data/hyps/hyp.scratch-custom.yaml
 
 # python val.py --weights runs/train/railroad_detector/weights/best.pt --data railroad-cars/data.yaml --img 640 --batch 16
 
