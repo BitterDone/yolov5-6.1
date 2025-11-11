@@ -157,9 +157,20 @@ def export_openvino(model, im, file, prefix=colorstr('OpenVINO:')):
     # YOLOv5 OpenVINO export
     try:
         check_requirements(('openvino-dev',))  # requires openvino-dev: https://pypi.org/project/openvino-dev/
-        import openvino.inference_engine as ie
+        # import openvino.inference_engine as ie
+        ov_version = 'unknown'
 
-        LOGGER.info(f'\n{prefix} starting export with openvino {ie.__version__}...')
+        try:
+            # Newer OpenVINO (>=2023)
+            from openvino.runtime import Core
+            core = Core()
+            ov_version = 'runtime API'
+        except ImportError:
+            # Legacy OpenVINO (<=2022.3)
+            import openvino.inference_engine as ie
+            ov_version = getattr(ie, '__version__', 'inference_engine API')
+            
+        LOGGER.info(f'\n{prefix} starting export with openvino {ov_version}...')
         f = str(file).replace('.pt', '_openvino_model' + os.sep)
 
         cmd = f"mo --input_model {file.with_suffix('.onnx')} --output_dir {f}"
