@@ -1,0 +1,12 @@
+[Unit]
+Description=Twitch Video Streaming
+After=network-online.target
+
+[Service]
+WorkingDirectory=/home/pi/edge-ai
+ExecStart=/home/pi/edge-ai/stream_to_twitch.sh
+Restart=always
+User=pi
+
+[Install]
+WantedBy=multi-user.target
