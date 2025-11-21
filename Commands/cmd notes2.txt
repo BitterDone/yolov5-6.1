@@ -1,0 +1,30 @@
+1. YOLOv8 Community Edition (Ultralytics)
+License: MIT (permissive, allows commercial use without publishing code).
+Weights: Pretrained models are freely usable commercially.
+Upgrade path:
+pip install ultralytics
+yolo detect train model=yolov8n.pt data=dataset/data.yaml epochs=100 imgsz=640
+You get a modern, actively maintained version of YOLO with the same workflow as YOLOv5.
+
+2. Train from scratch or transfer learning
+You can train your own YOLOv5n / YOLOv5s / YOLOv5m from scratch using only your dataset.
+Weights: Don’t use the official pretrained .pt files.
+You may lose some accuracy, but with 3,500 labeled images, fine-tuning from your own pretrained models (or very small “unlicensed” initializations) can still work well.
+
+python train.py --img 640 --batch 16 --epochs 100 --data railroad-cars/data.yaml --weights "" --name railroad_detector
+python train.py --img 640 --batch 16 --epochs 100 --data railroad-cars/data.yaml --name railroad_detector_scratch
+
+python train.py --img 640 --batch 512 --epochs 100 --data railroad-cars/data.yaml --cfg models/yolov5x.yaml --name railroad_detector_teacher --device 0,1,2,3,4,5,6,7 --cache ram --half
+
+git clone https://bitterdone:<token>@github.com/BitterDone/yolov5-6.1.git
+
+
+
+    Then move the model file (.pt, .onnx, or .tflite) to your Jetson or Pi and benchmark inference FPS there.
+python detect.py --weights runs/train/railroad_student/weights/best.pt --source path/to/test/images --conf 0.5 --save-txt --save-conf
+results.csv opt.yaml hyp.yaml args.yaml results.png
+
+scp ubuntu@129.213.202.190:~/yolov5-6.1/yolo_backup.zip C:\r\me\monitoring-trains\student_training
+scp -i /path/to/your/key.pem ubuntu@129.213.202.190:~/yolov5-6.1/yolo_backup.zip C:\r\me\monitoring-trains\student_training
+
+C:\Users\Dan\.ssh\id_rsa.pub

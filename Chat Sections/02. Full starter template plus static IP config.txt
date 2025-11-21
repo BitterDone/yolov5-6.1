@@ -1,0 +1,194 @@
+How do I integrate this into the "full starter template" that you provided?
+
+Absolutely — here is exactly how to integrate the Pi ↔ Reolink direct-connect static-IP network setup into the full starter template I gave you earlier (the template covering: video ingestion, inference loop, rate-limited alerts, streaming, autostart services, etc.).
+Below is the updated “full starter template” with the new networking block added cleanly and correctly.
+
+✅ FULL STARTER TEMPLATE — UPDATED WITH STATIC-IP CAMERA SETUP
+This is the unified version you can treat as the “master blueprint.”
+
+1. NETWORKING (STATIC IP — PI ↔ CAMERA DIRECT CONNECT)
+This goes before all other steps because everything else depends on the RTSP stream being accessible.
+1.1 Set static IP on the Raspberry Pi
+Edit:
+sudo nano /etc/dhcpcd.conf
+
+Add:
+interface eth0
+static ip_address=192.168.0.10/24
+static routers=192.168.0.1      # optional; unused for this closed network
+static domain_name_servers=8.8.8.8  # optional
+
+Reboot:
+sudo reboot
+
+1.2 Configure Reolink camera to static IP
+Connect via the temporary IP access trick:
+sudo arp -a
+
+You’ll see something like:
+? (192.168.0.2) at XX:XX:XX:XX on eth0
+
+Then visit in browser:
+http://192.168.0.2
+
+Login → Network → Set manually:
+Camera IP:        192.168.0.100
+Subnet mask:      255.255.255.0
+Gateway:          192.168.0.10
+DNS:              192.168.0.10
+
+After this: the Pi and camera permanently talk directly without DHCP.
+1.3 Your RTSP stream URL
+rtsp://admin:YOURPASSWORD@192.168.0.100:554/h264Preview_01_main
+
+
+2. VIDEO INGESTION MODULE (Pi)
+Use ffmpeg or opencv-python.
+Example camera.py:
+import cv2
+
+RTSP_URL = "rtsp://admin:YOURPASSWORD@192.168.0.100:554/h264Preview_01_main"
+
+def get_frame_generator():
+    cap = cv2.VideoCapture(RTSP_URL)
+    if not cap.isOpened():
+        raise RuntimeError("Cannot open RTSP stream")
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            continue
+        yield frame
+
+You drop this into your main inference loop (below).
+
+3. MODEL INFERENCE LOOP (OpenVINO or ONNX Runtime)
+from openvino.runtime import Core
+import numpy as np
+from camera import get_frame_generator
+
+ie = Core()
+model = ie.read_model("model.xml")
+compiled_model = ie.compile_model(model, "CPU")
+input_layer = compiled_model.input(0)
+output_layer = compiled_model.output(0)
+
+def run_inference(frame):
+    img = preprocess(frame)  # resize / normalize / letterbox
+    results = compiled_model([img])[output_layer]
+    return postprocess(results)
+
+You’ll plug this into the trigger logic below.
+
+4. ROLLING WINDOW DETECTION LOGIC (10 positive hits in 10 sec)
+from collections import deque
+import time
+import requests
+
+detections = deque(maxlen=50)   # enough for 10 secs @ ~5 FPS
+
+def check_trigger(detections):
+    now = time.time()
+    recent = [t for t in detections if now - t <= 10]
+    if len(recent) >= 10:
+        return True
+    return False
+
+def send_alert():
+    try:
+        requests.post("https://your-api.com/alert", json={"event": "train_detected"})
+    except:
+        pass
+
+Main loop:
+for frame in get_frame_generator():
+    preds = run_inference(frame)
+    if is_positive(preds):
+        detections.append(time.time())
+
+    if check_trigger(detections):
+        send_alert()
+        detections.clear()
+
+
+5. STREAMING THE FEED TO TWITCH
+Install dependencies:
+sudo apt install ffmpeg
+
+Start Twitch stream:
+ffmpeg -re -i "rtsp://admin:PASS@192.168.0.100:554/h264Preview_01_main" \
+  -vcodec copy -acodec aac \
+  -f flv "rtmp://live.twitch.tv/app/YOUR_STREAM_KEY"
+
+You can convert this into a systemd service below.
+
+6. REMOTE ACCESS (SECURE SHELL + KEY ONLY)
+Install fail2ban + UFW:
+sudo apt install fail2ban
+sudo ufw allow 22
+sudo ufw enable
+
+Disable password login in sshd:
+sudo nano /etc/ssh/sshd_config
+
+Set:
+PasswordAuthentication no
+PermitRootLogin no
+
+Restart:
+sudo systemctl restart ssh
+
+
+7. AUTOSTART ALL SERVICES (SYSTEMD)
+Example: inference.service
+sudo nano /etc/systemd/system/inference.service
+
+Paste:
+[Unit]
+Description=Detection Pipeline
+After=network-online.target
+
+[Service]
+ExecStart=/usr/bin/python3 /home/pi/project/inference.py
+Restart=always
+User=pi
+
+[Install]
+WantedBy=multi-user.target
+
+Enable:
+sudo systemctl enable inference.service
+sudo systemctl start inference.service
+
+Example: twitch.service
+[Service]
+ExecStart=/usr/bin/ffmpeg -re -i rtsp://admin:PASS@192.168.0.100:554/h264Preview_01_main \
+  -vcodec copy -acodec aac -f flv rtmp://live.twitch.tv/app/STREAMKEY
+Restart=always
+User=pi
+
+Enable:
+sudo systemctl enable twitch.service
+
+
+8. FULL DIRECTORY STRUCTURE
+project/
+  camera.py
+  inference.py
+  model.xml
+  model.bin
+  utils.py
+  services/
+    inference.service
+    twitch.service
+
+
+9. SUMMARY OF NEW INTEGRATION
+Your starter template now includes:
+ComponentStatusStatic IP Pi ↔ CameraAddedDirect RTSP pipelineAddedInference loopExistingRolling-window triggerExistingCloud alertingExistingTwitch streamingExistingsystemd autostartExistingSecure remote accessExisting
+Everything now fits together cleanly and reproducibly.
+
+Want me to generate the final combined GitHub-ready repository layout with all files pre-written?
+I can output all .py, .service, and configuration files ready to copy/paste onto your Pi.
+Just say:
+👉 “Generate the repo template.”

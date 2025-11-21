@@ -1,0 +1,38 @@
+🛠 Deployment Tips for Pi 3B:
+Use TFLite or ONNX for inference (not PyTorch directly)
+
+Prune models and quantize to int8 for best performance
+
+Consider OpenCV DNN module for running small models like MobileNet SSD
+
+Would you like a script to test YOLOv5n or MobileNet SSD on your Pi 3B right now using your Reolink RTSP camera?
+
+
+Would you like a script to:
+
+Train a custom YOLOv5n model using v6.1 on your dataset?
+
+Export to ONNX or TFLite for Pi inference?
+
+Or maybe I can help you get started evaluating the speed of a pretrained YOLOv5n model on your Pi 3B?
+
+
+Would you like a command to convert those YOLOv5 detections into timestamps (e.g. when a train was seen in the video)? Or export bounding box overlays frame-by-frame?
+
+
+Let me know if you’d like a version of detect.py modified to:
+Send alerts
+Write detection timestamps
+Call a REST API when trains are detected
+Or run on live camera feeds (e.g. from your Reolink RTSP)
+
+
+🧠 Optional: Add Attribution
+Since the dataset is under CC BY 4.0, you just need to credit it somewhere in your project. A short line like this is enough:
+“Model trained on the Railroad Car Detection dataset provided by Innopolis University via Roboflow Universe (CC BY 4.0).”
+
+You can put that:
+In your app’s "About" or Help section
+In documentation or README
+In a footer or web interface
+

@@ -1,0 +1,194 @@
+rock son mouse andy blue
+rtsp://admin:password@192.168.0.100:554/h264Preview_01_main
+http://192.168.0.100
+
+Is it possible to make the pi give the camera a static ip automatically upon booting?
+
+Yes — the Raspberry Pi can automatically assign a static IP to the camera every time it boots, with no router, no switch, no DHCP server, no manual setup on the camera.
+
+This is the cleanest, zero-maintenance solution for a Pi ↔ Reolink direct-connect setup.
+And it works extremely well for your “self-contained hardware kit” concept.
+There are two stable ways to do this:
+
+✅ BEST METHOD (Recommended): Pi runs a tiny DHCP server
+The Pi gives the camera an IP automatically each time both power up.
+
+Why this is the best:
+    The Pi assigns the IP even if the camera boots first.
+    No need to program or manually configure the camera at all.
+    The camera remains “factory default” and still gets an IP.
+    Also works for any Reolink model without customizing per device.
+    You maintain full flexibility for future devices.
+    This adds very little complexity (one config file + a systemd service).
+
+Method 1: Pi runs a minimal DHCP server (dnsmasq)
+This is the approach used by embedded products that manage cameras or sensors.
+
+1. Install dnsmasq
+    sudo apt update
+    sudo apt install dnsmasq
+
+2. Give the Pi a static IP on eth0
+
+3. Configure dnsmasq to assign the camera its IP
+Edit:
+    sudo nano /etc/dnsmasq.conf
+
+Add only these minimal lines:
+    interface=eth0
+    dhcp-range=192.168.0.100,192.168.0.110,255.255.255.0,24h
+(optional) If you want a fixed IP for the Reolink camera based on MAC address:
+    dhcp-host=ec:71:db:71:81:bd,192.168.0.100
+
+🎉 Result
+
+When you plug the Reolink camera directly into the Pi’s ethernet port:
+    Pi binds to 192.168.0.1
+    Pi automatically gives the camera an IP (e.g., 192.168.0.100)
+
+    Camera is immediately accessible at:
+        rtsp://admin:password@192.168.0.100:554/h264Preview_01_main
+        http://192.168.0.100
+
+    Every. Single. Boot.
+    With zero extra hardware.
+
+Disable DNS features (we only want DHCP)
+
+    Add these lines:
+        no-resolv
+        no-hosts
+        port=0
+
+    This keeps dnsmasq ultra-minimal and DHCP-only.
+
+Great — that explains exactly why eth0 never gets the IPv4 address you configured.
+
+Because:
+    dhcpcd is not installed, so its configuration file /etc/dhcpcd.conf is ignored
+    systemd-networkd is active, so the Pi’s networking is managed by networkd
+    dnsmasq is starting before eth0 has an IPv4 address → it crashes with
+        unknown interface eth0
+
+This means you should use systemd-networkd, not dhcpcd.
+It’s cleaner, more robust, and already active on your system.
+
+✅ FIX: Configure eth0's static IPv4 using systemd-networkd (recommended)
+
+We will:
+    Fully remove your dhcpcd changes
+    Configure a proper static IP on eth0 with networkd
+    Make dnsmasq wait for networking
+    Confirm the camera receives DHCP from the Pi
+
+STEP 1 — Remove the dhcpcd configuration you added
+    Open the file:
+        sudo nano /etc/dhcpcd.conf
+
+    Delete the lines:
+        interface eth0
+        static ip_address=192.168.0.1/24
+
+    Save & exit.
+
+    Since dhcpcd isn’t installed or running, this file won’t be used — just cleaning up.
+
+STEP 2 — Create a networkd config for eth0
+
+    This file gives eth0 a static IPv4 address on every reboot, even if the camera isn’t plugged in.
+        sudo nano /etc/systemd/network/10-eth0.network
+
+    Add EXACTLY this:
+        [Match]
+        Name=eth0
+
+        [Network]
+        Address=192.168.0.1/24
+        ConfigureWithoutCarrier=yes
+
+    Important:
+    ConfigureWithoutCarrier=yes ensures the Pi sets the IP even if the camera hasn’t powered up yet — solving your earlier race condition.
+
+    Save and exit.
+
+STEP 3 — Restart systemd-networkd
+    Run:
+        sudo systemctl restart systemd-networkd
+
+    Then verify:
+        ip addr show eth0
+
+    You should now see:
+        inet 192.168.0.1/24
+
+    If yes — continue.
+
+STEP 4 — Fix dnsmasq so it starts after eth0 is ready
+
+    Edit dnsmasq service override:
+        sudo systemctl edit dnsmasq
+
+    Add:
+        [Unit]
+        After=systemd-networkd.service
+        Requires=systemd-networkd.service
+
+    Save.
+
+    Reload systemd:
+        sudo systemctl daemon-reload
+
+    Restart dnsmasq:
+        sudo systemctl restart dnsmasq
+        sudo systemctl status dnsmasq
+
+    It should now start cleanly.
+
+STEP 5 — Confirm the camera receives its DHCP IP
+
+    Power-cycle the camera.
+
+    Then check:
+        arp -a
+
+    You should see:
+        ec:71:db:71:81:bd at 192.168.0.100
+
+    Or check dnsmasq leases:
+        cat /var/lib/misc/dnsmasq.leases
+
+    You should see something like:
+        <timestamp> ec:71:db:71:81:bd 192.168.0.100 ...
+
+🎉 Result
+
+    After this:
+        The Pi always assigns itself 192.168.0.1, reliably.
+        dnsmasq waits for eth0 and runs correctly.
+        The camera always gets 192.168.0.100 from DHCP.
+        The setup is fault tolerant and reboots cleanly.
+
+4. Which should you use for your Pi + camera setup?
+    dnsmasq must not start until eth0 exists.
+
+    If your Pi uses systemd-networkd, then the best practice dnsmasq unit override:
+        [Unit]
+        After=systemd-networkd-wait-online.service
+        Wants=systemd-networkd-wait-online.service
+
+
+    Why this combination?
+        It waits until networking is fully configured (IP assigned, interface up).
+        But does NOT hard-fail if something small goes wrong.
+        Much more reliable than just systemd-networkd.service.
+
+    Do NOT use Requires here unless you want:
+        A boot failure if networkd hits a transient race condition.
+
+
+sudo systemctl daemon-reload
+sudo systemctl restart dnsmasq
+
+arp -a
+
+journalctl -u dnsmasq -b --no-pager

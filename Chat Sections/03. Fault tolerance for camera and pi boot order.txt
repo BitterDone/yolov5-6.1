@@ -1,0 +1,139 @@
+You've done a great job, giving me detect_stream.py, detect.service, and the systemctl enable detect.service & systemctl start detect.service commands. 
+How do I make sure the system is fault-tolerant? I imagine it's possible the detect.service starts running before the camera is booted and has a local IP address
+
+Below are the exact patterns used to make a systemd-based Raspberry Pi service fault-tolerant, even if the camera isn’t yet reachable at boot.
+
+✅ Core Idea
+
+Systemd lets you delay service startup until certain conditions are met—like the network being online or a camera being reachable—or automatically retry on failure.
+
+To make your detect.service robust, you want:
+
+✔ Wait for network to be actually online
+✔ Retry if camera isn't reachable yet
+✔ Auto-restart on crash
+✔ Add a pre-check that pings the camera before the script launches
+
+Below is a complete, production-ready version.
+
+✅ 1. Update detect.service for robust networking
+
+Replace your current detect.service with this improved version:
+
+[Unit]
+Description=YOLOv8 Detection Stream
+After=network-online.target
+Wants=network-online.target
+
+# Optional: Only start if interface exists
+# Replace eth0 with the interface you use (eth0, wlan0, usb0, etc.)
+ConditionPathExists=/sys/class/net/eth0
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/detect
+ExecStartPre=/usr/local/bin/wait-for-camera.sh
+ExecStart=/usr/bin/python3 /home/pi/detect/detect_stream.py
+Restart=always
+RestartSec=5
+StartLimitInterval=0
+
+[Install]
+WantedBy=multi-user.target
+
+🔍 What this accomplishes:
+
+After=network-online.target / Wants=network-online.target
+Ensures your service won’t start until systemd believes the network is fully initialized.
+
+ConditionPathExists
+Prevents startup if the network interface didn't load yet.
+
+Restart=always
+If your script fails (e.g., camera unreachable), it auto-retries forever.
+
+RestartSec=5
+Wait 5 seconds between retries.
+
+ExecStartPre=wait-for-camera.sh
+This is the secret weapon—you will write a small script to wait until the camera responds.
+
+✅ 2. Add wait-for-camera.sh (simple connection guard)
+
+Create this file:
+
+sudo nano /usr/local/bin/wait-for-camera.sh
+
+
+Paste:
+
+#!/bin/bash
+
+CAMERA_IP="192.168.0.50"   # <-- set your camera static IP
+TIMEOUT=60                 # max seconds to wait
+
+echo "Waiting for camera at $CAMERA_IP..."
+
+for i in $(seq 1 $TIMEOUT); do
+    if ping -c 1 -W 1 "$CAMERA_IP" &> /dev/null; then
+        echo "Camera detected!"
+        exit 0
+    fi
+    sleep 1
+done
+
+echo "Camera not found after $TIMEOUT seconds. Starting service anyway..."
+exit 0
+
+
+Make executable:
+
+sudo chmod +x /usr/local/bin/wait-for-camera.sh
+
+🔍 What this solves:
+
+If your Pi boots faster than the camera → wait until camera responds
+
+If the camera is unplugged or unreachable → start anyway (your script will retry due to Restart=always)
+
+✅ 3. Reload systemd & enable
+sudo systemctl daemon-reload
+sudo systemctl enable detect.service
+sudo systemctl restart detect.service
+
+✅ 4. Optional: Add a watchdog inside detect_stream.py
+
+For even better resilience:
+
+Wrap the camera connection attempt in a loop
+
+Log failures
+
+Retry until successful
+
+Let me know and I’ll integrate a camera-watchdog into your existing code.
+
+🎯 Summary — Your system is now fault-tolerant
+
+With the above changes:
+
+✔ The service won’t start until the network is online
+✔ If the camera isn’t ready, the Pi waits
+✔ If the camera never appears, the script still starts & systemd will restart on failure
+✔ Startup order issues are eliminated
+✔ Any crash automatically restarts
+
+If you want, I can generate a full starter project including:
+
+detect_stream.py with reconnect logic
+
+detect.service (fault-tolerant version)
+
+wait-for-camera.sh
+
+Camera static IP configuration
+
+Logging with journald + log files
+
+Just tell me “Yes, build the full package.”
