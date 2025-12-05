@@ -1,13 +1,26 @@
+# [Unit] is for dependencies and ordering
 [Unit]
-Description=YOLOv5 Edge Detection
-After=network-online.target
+Description=YOLOv8 Detection Stream
+After=network-online.target dnsmasq.service
+Wants=network-online.target dnsmasq.service
+
+# Optional: Only start if interface exists
+# Replace eth0 with the interface you use (eth0, wlan0, usb0, etc.)
+ConditionPathExists=/sys/class/net/eth0
 
 [Service]
-WorkingDirectory=/home/pi/edge-ai
-ExecStart=/usr/bin/python3 /home/pi/edge-ai/detect_stream.py
-Restart=always
+# [Service] is for service behavior (environment, exec commands, stdout/stderr, restart policy, etc.)
+Type=simple
 User=pi
-Environment=PYTHONUNBUFFERED=1
+WorkingDirectory=/home/pi/detect
+ExecStartPre=/usr/local/bin/wait-for-camera.sh
+ExecStart=/usr/bin/python3 /home/pi/detect/detect_stream.py
+Restart=always
+RestartSec=20
+StartLimitInterval=0
+StandardOutput=journal
+StandardError=journal
+
 
 [Install]
 WantedBy=multi-user.target
