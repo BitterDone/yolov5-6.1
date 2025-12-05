@@ -19,6 +19,8 @@
 *.avi
 *.data
 *.json
+# Allow this one
+!config.json
 *.cfg
 !setup.cfg
 !cfg/yolov3*.cfg
@@ -52,6 +54,8 @@ VOC/
 # *.pt
 *.pb
 *.onnx
+# Allow this one
+!best.onnx
 *.engine
 *.mlmodel
 *.torchscript
