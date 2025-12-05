@@ -22,3 +22,8 @@ sudo rm /home/danbitter/detect/best.onnx
 sudo cp pi-root/models/best.onnx /home/danbitter/detect/best.onnx
 # Receives -rw-r--r-- by default
 # sudo chmod +x /home/danbitter/detect/best.onnx
+
+python3 -m venv /home/danbitter/detect/venv
+source /home/danbitter/detect/venv/bin/activate
+pip install opencv-python numpy
+deactivate

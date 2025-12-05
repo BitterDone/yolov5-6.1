@@ -14,7 +14,10 @@ Type=simple
 User=danbitter
 WorkingDirectory=/home/danbitter/detect
 ExecStartPre=/usr/local/bin/wait_for_camera.sh
-ExecStart=/usr/bin/python3 /home/danbitter/detect/detect_stream.py
+# For system-wide python
+# ExecStart=/usr/bin/python3 /home/danbitter/detect/detect_stream.py
+# For virtual environment
+ExecStart=/home/danbitter/detect/venv/bin/python /home/danbitter/detect/detect_stream.py
 Restart=always
 RestartSec=20
 StartLimitInterval=0
