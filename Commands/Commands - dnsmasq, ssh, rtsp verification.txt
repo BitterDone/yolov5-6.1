@@ -1,5 +1,5 @@
 2  sudo apt-get update
-3  sudo apt install dnsmasq ffmpeg -y
+3  sudo apt install -y dnsmasq ffmpeg git 
 
 # Figure out network issues
 5  ifconfig -a
