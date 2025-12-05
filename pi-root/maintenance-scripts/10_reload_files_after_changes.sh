@@ -1,0 +1,1 @@
+sudo systemctl stop detect.service && sudo systemctl disable detect.service && sh pi-root/maintenance-scripts/01_move_files.sh && sudo systemctl enable detect.service && sudo systemctl start detect.service && sudo journalctl -u detect.service -f
