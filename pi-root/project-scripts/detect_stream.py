@@ -7,6 +7,7 @@ import numpy as np
 import onnxruntime as ort
 from pathlib import Path
 
+print(f"Loading config")
 # --------------------------------------------------------
 # Load config
 # --------------------------------------------------------
@@ -19,6 +20,7 @@ THRESHOLD = config["threshold_count"]
 DISPLAY_DEBUG = config["display_debug"]
 last_no_detection_msg = 0  # track last time we printed "no trains detected"
 
+print(f"Loading ONNX model")
 # --------------------------------------------------------
 # Load ONNX model
 # --------------------------------------------------------
@@ -52,6 +54,7 @@ def parse_output(pred):
     class_ids = pred[:, 5]
     return conf, class_ids
 
+print(f"Rolling window setup")
 # --------------------------------------------------------
 # Rolling window setup
 # --------------------------------------------------------
@@ -66,13 +69,18 @@ def connect_camera():
     while True:
         cap = cv2.VideoCapture(RTSP_URL)
         if cap.isOpened():
+            print("Camera ready!")
             return cap
         print("Camera not ready, retrying in 5 sec...")
         time.sleep(5)
 
+print(f"Accessing camera")
 cap = connect_camera()
 if not cap.isOpened():
     raise RuntimeError("Failed to connect to RTSP stream. Check URL and camera.")
+
+ok, frame = cap.read()
+print("Frame read:", ok, flush=True)
 
 print("Streaming started. Running detection...")
 
