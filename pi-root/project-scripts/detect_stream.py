@@ -96,7 +96,7 @@ while True:
         counterNotOk += 1
 
         if counterNotOk > counterNotOkThreshold:
-            print(f"Last {counterNotOkThreshold} frames were not ok")
+            print(f"Last {counterNotOkThreshold} frames were not ok", flush=True)
             counterNotOk = 0
 
         continue
