@@ -58,8 +58,18 @@ detections_window = deque()
 
 # --------------------------------------------------------
 # Open RTSP stream
+# Enhace connect_camera to notify on 30 minutes of downtime
+# Let systemd handle restarts?
 # --------------------------------------------------------
-cap = cv2.VideoCapture(RTSP_URL)
+def connect_camera():
+    while True:
+        cap = cv2.VideoCapture(RTSP_URL)
+        if cap.isOpened():
+            return cap
+        print("Camera not ready, retrying in 5 sec...")
+        time.sleep(5)
+
+cap = connect_camera()
 if not cap.isOpened():
     raise RuntimeError("Failed to connect to RTSP stream. Check URL and camera.")
 
@@ -67,6 +77,7 @@ print("Streaming started. Running detection...")
 
 # --------------------------------------------------------
 # Main loop
+# Enhance this to self-heal if the camera dies
 # --------------------------------------------------------
 while True:
     ok, frame = cap.read()
