@@ -11,7 +11,7 @@ ConditionPathExists=/sys/class/net/eth0
 [Service]
 # [Service] is for service behavior (environment, exec commands, stdout/stderr, restart policy, etc.)
 Type=simple
-User=pi
+User=danbitter
 WorkingDirectory=/home/danbitter/detect
 ExecStartPre=/usr/local/bin/wait_for_camera.sh
 ExecStart=/usr/bin/python3 /home/danbitter/detect/detect_stream.py
