@@ -21,7 +21,7 @@ DISPLAY_DEBUG = config["display_debug"]
 # --------------------------------------------------------
 # Load ONNX model
 # --------------------------------------------------------
-MODEL_PATH = "models/best.onnx"
+MODEL_PATH = "best.onnx"
 providers = ["CPUExecutionProvider"]
 
 print(f"Loading model: {MODEL_PATH}")
