@@ -94,7 +94,7 @@ while True:
 
     # Filter detections for the target class
     for c, class_id in zip(conf, class_ids):
-        if c > 0.5 and class_id == 0:  # adjust class index if needed
+        if (c > 0.5).any() and class_id == 0:  # adjust class index if needed
             detections_window.append(now)
 
     # Remove expired detections
