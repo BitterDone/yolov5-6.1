@@ -17,6 +17,7 @@ API_URL = config["api_url"]
 WINDOW_SECONDS = config["threshold_seconds"]
 THRESHOLD = config["threshold_count"]
 DISPLAY_DEBUG = config["display_debug"]
+last_no_detection_msg = 0  # track last time we printed "no trains detected"
 
 # --------------------------------------------------------
 # Load ONNX model
@@ -91,11 +92,13 @@ while True:
     conf, class_ids = parse_output(outputs)
 
     now = time.time()
+    detected_this_frame = False
 
     # Filter detections for the target class
     for c, class_id in zip(conf, class_ids):
         if (c > 0.5).any() and (class_id == 0).any():  # adjust class index if needed
             detections_window.append(now)
+            detected_this_frame = True
 
     # Remove expired detections
     while detections_window and detections_window[0] < now - WINDOW_SECONDS:
@@ -103,12 +106,17 @@ while True:
 
     # Trigger API
     if len(detections_window) >= THRESHOLD:
-        print(f"API Trigger: {len(detections_window)} detections in window")
+        print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - API Trigger: {len(detections_window)} detections in window")
         try:
             requests.post(API_URL, json={"event": TARGET_CLASS, "count": len(detections_window)})
         except Exception as e:
             print("API Error:", e)
         detections_window.clear()
+
+    # Print "no trains detected" message if 30s passed with no detection
+    if not detected_this_frame and (now - last_no_detection_msg) >= WINDOW_SECONDS:
+        print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - No trains detected in the last {WINDOW_SECONDS} seconds")
+        last_no_detection_msg = now
 
     # Optional debug display
     if DISPLAY_DEBUG:
