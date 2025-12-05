@@ -110,10 +110,10 @@ Perfect — you’re essentially building a lightweight, autonomous edge inferen
             After=network.target
 
             [Service]
-            ExecStart=/usr/bin/python3 /home/pi/yolov5/detect_stream.py
+            ExecStart=/usr/bin/python3 /home/danbitter/yolov5/detect_stream.py
             Restart=always
             User=pi
-            WorkingDirectory=/home/pi/yolov5
+            WorkingDirectory=/home/danbitter/yolov5
             Environment=PYTHONUNBUFFERED=1
 
             [Install]
@@ -157,11 +157,11 @@ Great — here is the complete, ready-to-deploy Raspberry Pi edge pipeline, incl
 Everything is plug-and-play — you can copy/paste directly onto your Pi.
 
 ✅ Directory Structure (recommended)
-    /home/pi/edge-ai/
+    /home/danbitter/edge-ai/
     │
     ├── models/
     │   ├── student_openvino/
-    │   ├── student.onnx
+    │   ├── student.onnx (best.onnx)
     │   └── student.pt
     │
     ├── detect_stream.py
@@ -212,7 +212,7 @@ Everything is plug-and-play — you can copy/paste directly onto your Pi.
         # --------------------------------------------------------
         # Load ONNX model
         # --------------------------------------------------------
-        MODEL_PATH = "models/student.onnx"
+        MODEL_PATH = "models/best.onnx"
         providers = ["CPUExecutionProvider"]
 
         print(f"Loading model: {MODEL_PATH}")
@@ -314,15 +314,15 @@ Everything is plug-and-play — you can copy/paste directly onto your Pi.
 ✅ 4. Systemd service files
     detect.service
 
-    Located at /home/pi/edge-ai/services/detect.service
+    Located at /home/danbitter/edge-ai/services/detect.service
 
         [Unit]
         Description=YOLOv5 Edge Detection
         After=network-online.target
 
         [Service]
-        WorkingDirectory=/home/pi/edge-ai
-        ExecStart=/usr/bin/python3 /home/pi/edge-ai/detect_stream.py
+        WorkingDirectory=/home/danbitter/edge-ai
+        ExecStart=/usr/bin/python3 /home/danbitter/edge-ai/detect_stream.py
         Restart=always
         User=pi
         Environment=PYTHONUNBUFFERED=1
@@ -336,8 +336,8 @@ Everything is plug-and-play — you can copy/paste directly onto your Pi.
         After=network-online.target
 
         [Service]
-        WorkingDirectory=/home/pi/edge-ai
-        ExecStart=/home/pi/edge-ai/stream_to_twitch.sh
+        WorkingDirectory=/home/danbitter/edge-ai
+        ExecStart=/home/danbitter/edge-ai/stream_to_twitch.sh
         Restart=always
         User=pi
 

@@ -32,9 +32,9 @@ ConditionPathExists=/sys/class/net/eth0
 [Service]
 Type=simple
 User=pi
-WorkingDirectory=/home/pi/detect
+WorkingDirectory=/home/danbitter/detect
 ExecStartPre=/usr/local/bin/wait-for-camera.sh
-ExecStart=/usr/bin/python3 /home/pi/detect/detect_stream.py
+ExecStart=/usr/bin/python3 /home/danbitter/detect/detect_stream.py
 Restart=always
 RestartSec=5
 StartLimitInterval=0

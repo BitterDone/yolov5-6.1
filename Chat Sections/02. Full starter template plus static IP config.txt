@@ -149,7 +149,7 @@ Description=Detection Pipeline
 After=network-online.target
 
 [Service]
-ExecStart=/usr/bin/python3 /home/pi/project/inference.py
+ExecStart=/usr/bin/python3 /home/danbitter/project/inference.py
 Restart=always
 User=pi
 
