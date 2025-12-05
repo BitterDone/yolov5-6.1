@@ -88,9 +88,17 @@ print("Streaming started. Running detection...")
 # Main loop
 # Enhance this to self-heal if the camera dies
 # --------------------------------------------------------
+counterNotOk = 0
+counterNotOkThreshold = 10
 while True:
     ok, frame = cap.read()
     if not ok:
+        counterNotOk += 1
+
+        if counterNotOk > counterNotOkThreshold:
+            print(f"Last {counterNotOkThreshold} frames were not ok")
+            counterNotOk = 0
+
         continue
 
     img = preprocess(frame)
