@@ -151,7 +151,7 @@ for i, out in enumerate(outputs):
 
 
 conf, class_ids = parse_output(outputs)
-print(conf, class_ids, flush=True)
+print("parse_output: ", conf, class_ids, flush=True)
 
 
 # # --------------------------------------------------------
