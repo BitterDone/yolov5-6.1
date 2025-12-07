@@ -7,133 +7,135 @@ import numpy as np
 import onnxruntime as ort
 from pathlib import Path
 import os
+import onnx
 
-from debugging import debug
+# Print all metadata entries (if YOLOv8 exported them correctly)
+print(f"Debug model labels")
+model = onnx.load("best.onnx")
+print("Model metadata:")
+for prop in model.metadata_props:
+    print(f"{prop.key}: {prop.value}")
 
-print(f"Loading config")
-# --------------------------------------------------------
-# Load config
-# --------------------------------------------------------
-config = json.load(open("config.json"))
-RTSP_URL = config["rtsp_url"]
-TARGET_CLASS = config["target_class"]
-API_URL = config["api_url"]
-WINDOW_SECONDS = config["threshold_seconds"]
-THRESHOLD = config["threshold_count"]
-DISPLAY_DEBUG = config["display_debug"]
-last_no_detection_msg = 0  # track last time we printed "no trains detected"
+# print(f"Loading config")
+# # --------------------------------------------------------
+# # Load config
+# # --------------------------------------------------------
+# config = json.load(open("config.json"))
+# RTSP_URL = config["rtsp_url"]
+# TARGET_CLASS = config["target_class"]
+# API_URL = config["api_url"]
+# WINDOW_SECONDS = config["threshold_seconds"]
+# THRESHOLD = config["threshold_count"]
+# DISPLAY_DEBUG = config["display_debug"]
+# last_no_detection_msg = 0  # track last time we printed "no trains detected"
 
-print(f"Loading ONNX model")
-# --------------------------------------------------------
-# Load ONNX model
-# --------------------------------------------------------
-MODEL_PATH = "best.onnx"
-providers = ["CPUExecutionProvider"]
+# print(f"Loading ONNX model")
+# # --------------------------------------------------------
+# # Load ONNX model
+# # --------------------------------------------------------
+# MODEL_PATH = "best.onnx"
+# providers = ["CPUExecutionProvider"]
 
-print(f"Loading model: {MODEL_PATH}")
-session = ort.InferenceSession(MODEL_PATH, providers=providers)
-input_name = session.get_inputs()[0].name
+# print(f"Loading model: {MODEL_PATH}")
+# session = ort.InferenceSession(MODEL_PATH, providers=providers)
+# input_name = session.get_inputs()[0].name
 
-# YOLO parameters (student model is small)
-IMG_SIZE = 640
+# # YOLO parameters (student model is small)
+# IMG_SIZE = 640
 
-# --------------------------------------------------------
-# Helper: preprocess frame
-# --------------------------------------------------------
-def preprocess(frame):
-    # resize to a square image, possibly distorting aspect ratio
-    # For a first test, plain resize is fine, but for production, consider a letterbox function.
-    img = cv2.resize(frame, (IMG_SIZE, IMG_SIZE))
-    img = img[:, :, ::-1]  # BGR → RGB
-    img = img.transpose(2, 0, 1)  # HWC → CHW
-    # Ensures the array is stored contiguously in memory, required by some libraries like ONNX Runtime.
-    img = np.ascontiguousarray(img, dtype=np.float32)
-    # Normalizes pixel values from [0, 255] → [0.0, 1.0].
-    # Many models are trained on float images in the 0-1 range.
-    img /= 255.0
+# # --------------------------------------------------------
+# # Helper: preprocess frame
+# # --------------------------------------------------------
+# def preprocess(frame):
+#     # resize to a square image, possibly distorting aspect ratio
+#     # For a first test, plain resize is fine, but for production, consider a letterbox function.
+#     img = cv2.resize(frame, (IMG_SIZE, IMG_SIZE))
+#     img = img[:, :, ::-1]  # BGR → RGB
+#     img = img.transpose(2, 0, 1)  # HWC → CHW
+#     # Ensures the array is stored contiguously in memory, required by some libraries like ONNX Runtime.
+#     img = np.ascontiguousarray(img, dtype=np.float32)
+#     # Normalizes pixel values from [0, 255] → [0.0, 1.0].
+#     # Many models are trained on float images in the 0-1 range.
+#     img /= 255.0
 
-    # Adds a batch dimension at the front.
-    # ONNX Runtime expects input shape (batch_size, channels, height, width).
-    # By returning img[None], you get shape (1, C, H, W).
-    return img[None]
+#     # Adds a batch dimension at the front.
+#     # ONNX Runtime expects input shape (batch_size, channels, height, width).
+#     # By returning img[None], you get shape (1, C, H, W).
+#     return img[None]
 
-# --------------------------------------------------------
-# Helper: parse YOLO output, but was returning bounding boxes?
-# [[3.5810940e+01 7.3996449e+00 3.3653713e+01 1.5182625e+01 4.1127205e-06 1.9042850e-02 2.1468759e-02 1.4087200e-02 1.4146769e-01 2.6069313e-02 9.8165870e-03 7.7925146e-02 4.8476279e-02 3.3198088e-02 5.9680092e-01
-# 5.9449852e-02]] 
-# [[4.4976143e+01 7.4493561e+00 3.3781521e+01 1.5126505e+01 1.8477440e-06 2.0089865e-02 2.1678686e-02 1.5307128e-02 1.9232219e-01 2.5725007e-02 1.0918647e-02 7.5550646e-02 5.0171554e-02 3.6671728e-02 5.5309051e-01
-# 6.0226411e-02]]
-# --------------------------------------------------------
-# def parse_output(pred):
-#     pred = pred[0]  # first batch
-#     conf = pred[:, 4]
-#     class_ids = pred[:, 5]
-#     return conf, class_ids
+# # --------------------------------------------------------
+# # Helper: parse YOLO output, but was returning bounding boxes?
+# # [[3.5810940e+01 7.3996449e+00 3.3653713e+01 1.5182625e+01 4.1127205e-06 1.9042850e-02 2.1468759e-02 1.4087200e-02 1.4146769e-01 2.6069313e-02 9.8165870e-03 7.7925146e-02 4.8476279e-02 3.3198088e-02 5.9680092e-01
+# # 5.9449852e-02]] 
+# # [[4.4976143e+01 7.4493561e+00 3.3781521e+01 1.5126505e+01 1.8477440e-06 2.0089865e-02 2.1678686e-02 1.5307128e-02 1.9232219e-01 2.5725007e-02 1.0918647e-02 7.5550646e-02 5.0171554e-02 3.6671728e-02 5.5309051e-01
+# # 6.0226411e-02]]
+# # --------------------------------------------------------
+# # def parse_output(pred):
+# #     pred = pred[0]  # first batch
+# #     conf = pred[:, 4]
+# #     class_ids = pred[:, 5]
+# #     return conf, class_ids
 
-def parse_output(outputs, conf_thres=0.5):
-    # Rewrite parse_output() for your YOLOv8 ONNX model. Based on your output shapes (1, 25200, 16)
-    # Suppose the model returns one output, shape (1, N, 6)
-    # Use only the first output
-    preds = outputs[0]  # shape: (1, 25200, 16)
-    preds = preds[0]     # remove batch dim → (25200, 16)
+# def parse_output(outputs, conf_thres=0.5):
+#     # Rewrite parse_output() for your YOLOv8 ONNX model. Based on your output shapes (1, 25200, 16)
+#     # Suppose the model returns one output, shape (1, N, 6)
+#     # Use only the first output
+#     preds = outputs[0]  # shape: (1, 25200, 16)
+#     preds = preds[0]     # remove batch dim → (25200, 16)
 
-    # Extract objectness and class probabilities
-    confs = preds[:, 4]  # objectness score
-    class_probs = preds[:, 5:]  # class probabilities
-    class_ids = np.argmax(class_probs, axis=1)
-    class_conf = np.max(class_probs, axis=1)
+#     # Extract objectness and class probabilities
+#     confs = preds[:, 4]  # objectness score
+#     class_probs = preds[:, 5:]  # class probabilities
+#     class_ids = np.argmax(class_probs, axis=1)
+#     class_conf = np.max(class_probs, axis=1)
 
-    # Combined confidence
-    conf = confs * class_conf
+#     # Combined confidence
+#     conf = confs * class_conf
 
-    # Filter by confidence threshold
-    mask = conf > conf_thres
+#     # Filter by confidence threshold
+#     mask = conf > conf_thres
     
-    return conf[mask], class_ids[mask]
+#     return conf[mask], class_ids[mask]
 
-    # Previous parse_output logic for reference:
-    # # confidence = index 4; class = index 5
-    # confs = preds[:, 4]
-    # class_ids = preds[:, 5].astype(int)
+#     # Previous parse_output logic for reference:
+#     # # confidence = index 4; class = index 5
+#     # confs = preds[:, 4]
+#     # class_ids = preds[:, 5].astype(int)
 
-    # # optional: filter out low-confidence
-    # mask = confs >= conf_thres
-    # return confs[mask], class_ids[mask]
-
-
-print(f"Rolling window setup", flush=True)
-# --------------------------------------------------------
-# Rolling window setup
-# --------------------------------------------------------
-detections_window = deque()
-
-# --------------------------------------------------------
-# Open RTSP stream
-# Enhace connect_camera to notify on 30 minutes of downtime
-# Let systemd handle restarts?
-# --------------------------------------------------------
-def connect_camera():
-    while True:
-        cap = cv2.VideoCapture(RTSP_URL)
-        if cap.isOpened():
-            print("Camera ready!")
-            return cap
-        print("Camera not ready, retrying in 5 sec...")
-        time.sleep(5)
-
-print(f"Accessing camera", flush=True)
-cap = connect_camera()
-if not cap.isOpened():
-    raise RuntimeError("Failed to connect to RTSP stream. Check URL and camera.")
-
-ok, frame = cap.read()
-print("Frame read:", ok, flush=True)
-
-print("Streaming started. Running detection...", flush=True)
-
-debug(os, cv2, preprocess, session, parse_output)
+#     # # optional: filter out low-confidence
+#     # mask = confs >= conf_thres
+#     # return confs[mask], class_ids[mask]
 
 
+# print(f"Rolling window setup", flush=True)
+# # --------------------------------------------------------
+# # Rolling window setup
+# # --------------------------------------------------------
+# detections_window = deque()
+
+# # --------------------------------------------------------
+# # Open RTSP stream
+# # Enhace connect_camera to notify on 30 minutes of downtime
+# # Let systemd handle restarts?
+# # --------------------------------------------------------
+# def connect_camera():
+#     while True:
+#         cap = cv2.VideoCapture(RTSP_URL)
+#         if cap.isOpened():
+#             print("Camera ready!")
+#             return cap
+#         print("Camera not ready, retrying in 5 sec...")
+#         time.sleep(5)
+
+# print(f"Accessing camera", flush=True)
+# cap = connect_camera()
+# if not cap.isOpened():
+#     raise RuntimeError("Failed to connect to RTSP stream. Check URL and camera.")
+
+# ok, frame = cap.read()
+# print("Frame read:", ok, flush=True)
+
+# print("Streaming started. Running detection...", flush=True)
 # # --------------------------------------------------------
 # # Main loop
 # # Enhance this to self-heal if the camera dies
@@ -152,6 +154,8 @@ debug(os, cv2, preprocess, session, parse_output)
 #         continue
 
 #     img = preprocess(frame)
+
+#     input_name = session.get_inputs()[0].name
 #     outputs = session.run(None, {input_name: img})
 
 #     # Parse outputs
