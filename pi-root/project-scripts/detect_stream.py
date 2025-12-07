@@ -39,23 +39,49 @@ IMG_SIZE = 640
 # Helper: preprocess frame
 # --------------------------------------------------------
 def preprocess(frame):
+    # resize to a square image, possibly distorting aspect ratio
+    # For a first test, plain resize is fine, but for production, consider a letterbox function.
     img = cv2.resize(frame, (IMG_SIZE, IMG_SIZE))
     img = img[:, :, ::-1]  # BGR → RGB
     img = img.transpose(2, 0, 1)  # HWC → CHW
+    # Ensures the array is stored contiguously in memory, required by some libraries like ONNX Runtime.
     img = np.ascontiguousarray(img, dtype=np.float32)
+    # Normalizes pixel values from [0, 255] → [0.0, 1.0].
+    # Many models are trained on float images in the 0-1 range.
     img /= 255.0
+
+    # Adds a batch dimension at the front.
+    # ONNX Runtime expects input shape (batch_size, channels, height, width).
+    # By returning img[None], you get shape (1, C, H, W).
     return img[None]
 
 # --------------------------------------------------------
-# Helper: parse YOLO output
+# Helper: parse YOLO output, but was returning bounding boxes?
+# [[3.5810940e+01 7.3996449e+00 3.3653713e+01 1.5182625e+01 4.1127205e-06 1.9042850e-02 2.1468759e-02 1.4087200e-02 1.4146769e-01 2.6069313e-02 9.8165870e-03 7.7925146e-02 4.8476279e-02 3.3198088e-02 5.9680092e-01
+# 5.9449852e-02]] 
+# [[4.4976143e+01 7.4493561e+00 3.3781521e+01 1.5126505e+01 1.8477440e-06 2.0089865e-02 2.1678686e-02 1.5307128e-02 1.9232219e-01 2.5725007e-02 1.0918647e-02 7.5550646e-02 5.0171554e-02 3.6671728e-02 5.5309051e-01
+# 6.0226411e-02]]
 # --------------------------------------------------------
-def parse_output(pred):
-    pred = pred[0]  # first batch
-    conf = pred[:, 4]
-    class_ids = pred[:, 5]
-    return conf, class_ids
+# def parse_output(pred):
+#     pred = pred[0]  # first batch
+#     conf = pred[:, 4]
+#     class_ids = pred[:, 5]
+#     return conf, class_ids
 
-print(f"Rolling window setup")
+def parse_output(outputs, conf_thres=0.5):
+    # Suppose the model returns one output, shape (1, N, 6)
+    preds = outputs[0][0]  # drop batch dimension
+
+    # confidence = index 4; class = index 5
+    confs = preds[:, 4]
+    class_ids = preds[:, 5].astype(int)
+
+    # optional: filter out low-confidence
+    mask = confs >= conf_thres
+    return confs[mask], class_ids[mask]
+
+
+print(f"Rolling window setup", flush=True)
 # --------------------------------------------------------
 # Rolling window setup
 # --------------------------------------------------------
@@ -75,7 +101,7 @@ def connect_camera():
         print("Camera not ready, retrying in 5 sec...")
         time.sleep(5)
 
-print(f"Accessing camera")
+print(f"Accessing camera", flush=True)
 cap = connect_camera()
 if not cap.isOpened():
     raise RuntimeError("Failed to connect to RTSP stream. Check URL and camera.")
@@ -88,14 +114,16 @@ print("Streaming started. Running detection...", flush=True)
 
 print("Begin debugging script", flush=True)
 print("cwd =", os.getcwd(), flush=True)
-img = cv2.imread("/home/danbitter/yolov5-6.1/pi-root/project-scripts/freight_train.jpg")
-print("img is None?", img is None)
+frame = cv2.imread("/home/danbitter/yolov5-6.1/pi-root/project-scripts/freight_train.jpg")
+print("frame is None?", frame is None, flush=True)
 
-img_input = preprocess(img)
-outputs = session.run(None, {input_name: img_input})
+img = preprocess(frame)
+# input_name must match your model’s input tensor name. You can print it using:
+print("input_name to match model input tensor name", session.get_inputs()[0].name, flush=True)
+outputs = session.run(None, {input_name: img})
 
 conf, class_ids = parse_output(outputs)
-print(conf, class_ids)
+print(conf, class_ids, flush=True)
 
 
 # # --------------------------------------------------------
