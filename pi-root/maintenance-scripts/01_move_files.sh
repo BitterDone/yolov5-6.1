@@ -28,5 +28,5 @@ python3 -m venv /home/danbitter/detect/venv
 # source /home/danbitter/detect/venv/bin/activate
 # Use . in a script
 . /home/danbitter/detect/venv/bin/activate
-pip install opencv-python numpy requests onnxruntime onnx
+pip install opencv-python numpy requests onnxruntime
 deactivate
