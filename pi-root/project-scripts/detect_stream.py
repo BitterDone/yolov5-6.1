@@ -112,7 +112,6 @@ while True:
 
     # Filter detections for the target class
     for c, class_id in zip(conf, class_ids):
-        print("Conf:", conf[:5], "Classes:", class_ids[:5], flush=True)
         if (c > 0.5).any() and (class_id == TARGET_CLASS).any():  # adjust class index if needed
             print("Train detected!", len(detections_window), flush=True)
             detections_window.append(now)
