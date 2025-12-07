@@ -8,13 +8,20 @@ import onnxruntime as ort
 from pathlib import Path
 import os
 import onnx
+from ultralytics import YOLO
 
 # Print all metadata entries (if YOLOv8 exported them correctly)
-print(f"Debug model labels")
+print(f"Debug model labels", flush=True)
+m = YOLO("/home/danbitter/yolov5-6.1/runs/train/railroad_student3/weights/best.pt")
+print(m.names)
+
 model = onnx.load("best.onnx")
-print("Model metadata:")
+print("Metadata count:", len(model.metadata_props))
+print("All metadata:", model.metadata_props)
+
+print("Model metadata:", flush=True)
 for prop in model.metadata_props:
-    print(f"{prop.key}: {prop.value}")
+    print(f"{prop.key}: {prop.value}", flush=True)
 
 # print(f"Loading config")
 # # --------------------------------------------------------
