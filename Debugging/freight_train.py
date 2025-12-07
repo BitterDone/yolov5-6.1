@@ -11,7 +11,7 @@ print(f"Loading config")
 # --------------------------------------------------------
 # Load config
 # --------------------------------------------------------
-config = json.load(open("../../pi-root/project-scripts/config.json"))
+config = json.load(open("../pi-root/project-scripts/config.json"))
 RTSP_URL = config["rtsp_url"]
 TARGET_CLASS = config["target_class"]
 API_URL = config["api_url"]
