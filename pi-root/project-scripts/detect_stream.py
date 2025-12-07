@@ -6,6 +6,7 @@ import requests
 import numpy as np
 import onnxruntime as ort
 from pathlib import Path
+import os
 
 print(f"Loading config")
 # --------------------------------------------------------
@@ -86,7 +87,10 @@ print("Streaming started. Running detection...", flush=True)
 
 
 print("Begin debugging script", flush=True)
-img = cv2.imread("freight_train.jpg")
+print("cwd =", os.getcwd(), flush=True)
+img = cv2.imread("/home/danbitter/yolov5-6.1/pi-root/project-scripts/freight_train.jpg")
+print("img is None?", img is None)
+
 img_input = preprocess(img)
 outputs = session.run(None, {input_name: img_input})
 
