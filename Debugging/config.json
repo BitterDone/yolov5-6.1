@@ -1,8 +1,0 @@
-{
-    "rtsp_url": "rtsp://user:pass@CAMERA_IP:554/h264Preview_01_main",
-    "target_class": "train",
-    "api_url": "https://your.api.endpoint",
-    "threshold_count": 10,
-    "threshold_seconds": 10,
-    "display_debug": false
-}
