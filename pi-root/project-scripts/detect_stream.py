@@ -82,7 +82,7 @@ if not cap.isOpened():
 ok, frame = cap.read()
 print("Frame read:", ok, flush=True)
 
-print("Streaming started. Running detection...")
+print("Streaming started. Running detection...", flush=True)
 
 # --------------------------------------------------------
 # Main loop
@@ -96,7 +96,7 @@ while True:
         counterNotOk += 1
 
         if counterNotOk > counterNotOkThreshold:
-            print(f"Last {counterNotOkThreshold} frames were not ok", flush=True)
+            print(f"Last {counterNotOkThreshold} frames were not ok", flush=True, flush=True)
             counterNotOk = 0
 
         continue
@@ -122,16 +122,16 @@ while True:
 
     # Trigger API
     if len(detections_window) >= THRESHOLD:
-        print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - API Trigger: {len(detections_window)} detections in window")
+        print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - API Trigger: {len(detections_window)} detections in window", flush=True)
         try:
             requests.post(API_URL, json={"event": TARGET_CLASS, "count": len(detections_window)})
         except Exception as e:
-            print("API Error:", e)
+            print("API Error:", e, flush=True)
         detections_window.clear()
 
-    # Print "no trains detected" message if 30s passed with no detection
+    # Print "no trains detected" message if 30s passed with no detection, flush=True
     if not detected_this_frame and (now - last_no_detection_msg) >= WINDOW_SECONDS:
-        print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - No trains detected in the last {WINDOW_SECONDS} seconds")
+        print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - No trains detected in the last {WINDOW_SECONDS} seconds", flush=True)
         last_no_detection_msg = now
 
     # Optional debug display
