@@ -112,7 +112,7 @@ while True:
 
     # Filter detections for the target class
     for c, class_id in zip(conf, class_ids):
-        if (c > 0.5).any() and (class_id == 0).any():  # adjust class index if needed
+        if (c > 0.5).any() and (class_id == TARGET_CLASS).any():  # adjust class index if needed
             print("Train detected!", len(detections_window), flush=True)
             detections_window.append(now)
             detected_this_frame = True
