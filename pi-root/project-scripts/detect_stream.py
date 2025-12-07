@@ -8,8 +8,6 @@ import onnxruntime as ort
 from pathlib import Path
 import os
 
-from debugging import debug
-
 print(f"Loading config")
 # --------------------------------------------------------
 # Load config
