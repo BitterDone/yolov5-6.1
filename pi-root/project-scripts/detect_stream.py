@@ -8,13 +8,12 @@ import onnxruntime as ort
 from pathlib import Path
 import os
 import onnx
-import torch
+from ultralytics import YOLO
 
 # Print all metadata entries (if YOLOv8 exported them correctly)
 print(f"Debug model labels", flush=True)
-ckpt = torch.load("/home/danbitter/yolov5-6.1/runs/train/railroad_student3/weights/best.pt", map_location="cpu")
-names = ckpt['model'].names
-print(names, flush=True)
+m = YOLO("/home/danbitter/yolov5-6.1/runs/train/railroad_student3/weights/best.pt")
+print(m.names)
 
 model = onnx.load("best.onnx")
 print("Metadata count:", len(model.metadata_props))
