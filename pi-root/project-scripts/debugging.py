@@ -9,7 +9,7 @@ def debug(os, cv2, preprocess, session, parse_output):
 
     # input_name must match your model’s input tensor name. You can print it using:
     input_name = session.get_inputs()[0].name
-    # print("input_name to match model input tensor name", input_name, flush=True) # images
+    print("input_name to match model input tensor name", input_name, flush=True) # images
     outputs = session.run(None, {input_name: img})
 
     # # Print the raw ONNX output shape(s)
@@ -21,12 +21,3 @@ def debug(os, cv2, preprocess, session, parse_output):
 
     conf, class_ids = parse_output(outputs)
     print("parse_output: ", conf, class_ids, flush=True)
-
-import onnx
-
-model = onnx.load("best.onnx")
-
-# Print all metadata entries (if YOLOv8 exported them correctly)
-print("Model metadata:")
-for prop in model.metadata_props:
-    print(f"{prop.key}: {prop.value}")
