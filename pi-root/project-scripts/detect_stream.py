@@ -84,59 +84,69 @@ print("Frame read:", ok, flush=True)
 
 print("Streaming started. Running detection...", flush=True)
 
-# --------------------------------------------------------
-# Main loop
-# Enhance this to self-heal if the camera dies
-# --------------------------------------------------------
-counterNotOk = 0
-counterNotOkThreshold = 10
-while True:
-    ok, frame = cap.read()
-    if not ok:
-        counterNotOk += 1
 
-        if counterNotOk > counterNotOkThreshold:
-            print(f"Last {counterNotOkThreshold} frames were not ok", flush=True)
-            counterNotOk = 0
+print("Begin debugging script", flush=True)
+img = cv2.imread("freight_train.jpg")
+img_input = preprocess(img)
+outputs = session.run(None, {input_name: img_input})
 
-        continue
+conf, class_ids = parse_output(outputs)
+print(conf, class_ids)
 
-    img = preprocess(frame)
-    outputs = session.run(None, {input_name: img})
 
-    # Parse outputs
-    conf, class_ids = parse_output(outputs)
+# # --------------------------------------------------------
+# # Main loop
+# # Enhance this to self-heal if the camera dies
+# # --------------------------------------------------------
+# counterNotOk = 0
+# counterNotOkThreshold = 10
+# while True:
+#     ok, frame = cap.read()
+#     if not ok:
+#         counterNotOk += 1
 
-    now = time.time()
-    detected_this_frame = False
+#         if counterNotOk > counterNotOkThreshold:
+#             print(f"Last {counterNotOkThreshold} frames were not ok", flush=True)
+#             counterNotOk = 0
 
-    # Filter detections for the target class
-    for c, class_id in zip(conf, class_ids):
-        if (c > 0.5).any() and (class_id == TARGET_CLASS).any():  # adjust class index if needed
-            print("Train detected!", len(detections_window), flush=True)
-            detections_window.append(now)
-            detected_this_frame = True
+#         continue
 
-    # Remove expired detections
-    while detections_window and detections_window[0] < now - WINDOW_SECONDS:
-        detections_window.popleft()
+#     img = preprocess(frame)
+#     outputs = session.run(None, {input_name: img})
 
-    # Trigger API
-    if len(detections_window) >= THRESHOLD:
-        print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - API Trigger: {len(detections_window)} detections in window", flush=True)
-        try:
-            requests.post(API_URL, json={"event": TARGET_CLASS, "count": len(detections_window)})
-        except Exception as e:
-            print("API Error:", e, flush=True)
-        detections_window.clear()
+#     # Parse outputs
+#     conf, class_ids = parse_output(outputs)
 
-    # Print "no trains detected" message if 30s passed with no detection, flush=True
-    if not detected_this_frame and (now - last_no_detection_msg) >= WINDOW_SECONDS:
-        print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - No trains detected in the last {WINDOW_SECONDS} seconds", flush=True)
-        last_no_detection_msg = now
+#     now = time.time()
+#     detected_this_frame = False
 
-    # Optional debug display
-    if DISPLAY_DEBUG:
-        cv2.imshow("Edge AI Stream", frame)
-        if cv2.waitKey(1) == ord('q'):
-            break
+#     # Filter detections for the target class
+#     for c, class_id in zip(conf, class_ids):
+#         if (c > 0.5).any() and (class_id == TARGET_CLASS).any():  # adjust class index if needed
+#             print("Train detected!", len(detections_window), flush=True)
+#             detections_window.append(now)
+#             detected_this_frame = True
+
+#     # Remove expired detections
+#     while detections_window and detections_window[0] < now - WINDOW_SECONDS:
+#         detections_window.popleft()
+
+#     # Trigger API
+#     if len(detections_window) >= THRESHOLD:
+#         print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - API Trigger: {len(detections_window)} detections in window", flush=True)
+#         try:
+#             requests.post(API_URL, json={"event": TARGET_CLASS, "count": len(detections_window)})
+#         except Exception as e:
+#             print("API Error:", e, flush=True)
+#         detections_window.clear()
+
+#     # Print "no trains detected" message if 30s passed with no detection, flush=True
+#     if not detected_this_frame and (now - last_no_detection_msg) >= WINDOW_SECONDS:
+#         print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - No trains detected in the last {WINDOW_SECONDS} seconds", flush=True)
+#         last_no_detection_msg = now
+
+#     # Optional debug display
+#     if DISPLAY_DEBUG:
+#         cv2.imshow("Edge AI Stream", frame)
+#         if cv2.waitKey(1) == ord('q'):
+#             break
