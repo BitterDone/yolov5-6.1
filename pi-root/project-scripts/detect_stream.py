@@ -12,7 +12,7 @@ import torch
 
 # Print all metadata entries (if YOLOv8 exported them correctly)
 print(f"Debug model labels", flush=True)
-ckpt = torch.load("/home/danbitter/yolov5-6.1/runs/train/railroad_student3/weights/best.pt", map_location="cpu")
+ckpt = torch.load("/home/danbitter/yolov5-6.1/runs/train/railroad_student3/weights/best.pt", map_location="cpu", weights_only=False)
 names = ckpt['model'].names
 print(names, flush=True)
 
