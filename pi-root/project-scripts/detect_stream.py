@@ -69,16 +69,34 @@ def preprocess(frame):
 #     return conf, class_ids
 
 def parse_output(outputs, conf_thres=0.5):
+    # Rewrite parse_output() for your YOLOv8 ONNX model. Based on your output shapes (1, 25200, 16)
     # Suppose the model returns one output, shape (1, N, 6)
-    preds = outputs[0][0]  # drop batch dimension
+    # Use only the first output
+    preds = outputs[0]  # shape: (1, 25200, 16)
+    preds = preds[0]     # remove batch dim → (25200, 16)
 
-    # confidence = index 4; class = index 5
-    confs = preds[:, 4]
-    class_ids = preds[:, 5].astype(int)
+    # Extract objectness and class probabilities
+    confs = preds[:, 4]  # objectness score
+    class_probs = preds[:, 5:]  # class probabilities
+    class_ids = np.argmax(class_probs, axis=1)
+    class_conf = np.max(class_probs, axis=1)
 
-    # optional: filter out low-confidence
-    mask = confs >= conf_thres
-    return confs[mask], class_ids[mask]
+    # Combined confidence
+    conf = confs * class_conf
+
+    # Filter by confidence threshold
+    mask = conf > conf_thres
+    
+    return conf[mask], class_ids[mask]
+
+    # Previous parse_output logic for reference:
+    # # confidence = index 4; class = index 5
+    # confs = preds[:, 4]
+    # class_ids = preds[:, 5].astype(int)
+
+    # # optional: filter out low-confidence
+    # mask = confs >= conf_thres
+    # return confs[mask], class_ids[mask]
 
 
 print(f"Rolling window setup", flush=True)
@@ -132,8 +150,8 @@ for i, out in enumerate(outputs):
     print(f"Output[{i}] sample:", out.reshape(-1, out.shape[-1])[:5], flush=True)
 
 
-# conf, class_ids = parse_output(outputs)
-# print(conf, class_ids, flush=True)
+conf, class_ids = parse_output(outputs)
+print(conf, class_ids, flush=True)
 
 
 # # --------------------------------------------------------
