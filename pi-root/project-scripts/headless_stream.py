@@ -139,13 +139,16 @@ def generate_stream():
         if not ok:
             continue
 
+        # Inference
         img = preprocess(frame)
         outputs = session.run(None, {input_name: img})
-        conf, class_ids = parse_output(outputs)
 
-        frame = draw_overlay(frame, conf, class_ids)
+        # Use your parse_output if preferred, or decode here
+        pred = outputs[0].reshape(-1, 16)  # YOLOv5 ONNX output
+        boxes, conf, ids = decode_yolo_output(pred)
 
-        # Encode frame as JPEG
+        frame = draw_boxes(frame, boxes, conf, ids)
+
         ret, jpeg = cv2.imencode(".jpg", frame)
         if not ret:
             continue
