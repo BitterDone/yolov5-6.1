@@ -28,19 +28,21 @@ print(f"Loading model: {MODEL_PATH}")
 session = ort.InferenceSession(MODEL_PATH, providers=providers)
 input_name = session.get_inputs()[0].name
 
-def draw_overlay(frame, conf, class_ids):
-    y = 20
-    if len(conf) == 0:
-        cv2.putText(frame, "No detections", (10, y),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,0,255), 2)
-        return frame
+# def draw_overlay(frame, conf, class_ids):
+#     y = 20
+#     if len(conf) == 0:
+#         cv2.putText(frame, "No detections", (10, y),
+#                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,0,255), 2)
+#         return frame
 
-    for c, cls in zip(conf, class_ids):
-        text = f"{class_names[cls]}: {c:.2f}"
-        cv2.putText(frame, text, (10, y),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,255,0), 2)
-        y += 25
-    return frame
+#     for c, cls in zip(conf, class_ids):
+#         print("DETECTION:", "cls=", cls, "conf=", c, flush=True)
+
+#         text = f"{class_names[cls]}: {c:.2f}"
+#         cv2.putText(frame, text, (10, y),
+#                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,255,0), 2)
+#         y += 25
+#     return frame
 
 def preprocess(frame):
     # resize to a square image, possibly distorting aspect ratio
@@ -83,6 +85,8 @@ def draw_boxes(frame, boxes, conf, class_ids):
     h, w = frame.shape[:2]
 
     for (x, y, bw, bh), c, cls in zip(boxes, conf, class_ids):
+        print("DETECTION:", "cls=", cls, "conf=", c, flush=True)
+        
         # YOLO normally outputs xywh normalized between 0–1
         x1 = int((x - bw/2) * w)
         y1 = int((y - bh/2) * h)
@@ -95,7 +99,10 @@ def draw_boxes(frame, boxes, conf, class_ids):
         x2 = max(0, min(w-1, x2))
         y2 = max(0, min(h-1, y2))
 
-        label = f"{class_names[cls]} {c:.2f}"
+        if cls < 0 or cls >= len(class_names):
+            label = f"unknown {cls} {c:.2f}"
+        else:
+            label = f"{class_names[cls]} {c:.2f}"
 
         cv2.rectangle(frame, (x1, y1), (x2, y2), (0,255,0), 2)
         cv2.putText(frame, label, (x1, max(0,y1-5)),
@@ -107,31 +114,6 @@ def draw_boxes(frame, boxes, conf, class_ids):
 # -----------------------
 # MJPEG generator
 # -----------------------
-def generate_stream():
-    global cap
-    while True:
-        ok, frame = cap.read()
-        if not ok:
-            continue
-
-        # Inference
-        img = preprocess(frame)
-        outputs = session.run(None, {input_name: img})
-
-        # Use your parse_output if preferred, or decode here
-        pred = outputs[0].reshape(-1, 16)  # YOLOv5 ONNX output
-        boxes, conf, ids = decode_yolo_output(pred)
-
-        frame = draw_boxes(frame, boxes, conf, ids)
-
-        ret, jpeg = cv2.imencode(".jpg", frame)
-        if not ret:
-            continue
-
-        yield (b"--frame\r\n"
-               b"Content-Type: image/jpeg\r\n\r\n" +
-               jpeg.tobytes() + b"\r\n")
-
 def generate_stream():
     global cap
     while True:
