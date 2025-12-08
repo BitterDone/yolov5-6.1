@@ -21,7 +21,7 @@ cap = None
 
 config = json.load(open("/home/danbitter/yolov5-6.1/pi-root/project-scripts/config.json"))
 RTSP_URL = config["rtsp_url"]
-MODEL_PATH = "best.onnx"
+MODEL_PATH = "/home/danbitter/yolov5-6.1/pi-root/models/best.onnx"
 providers = ["CPUExecutionProvider"]
 
 print(f"Loading model: {MODEL_PATH}")
