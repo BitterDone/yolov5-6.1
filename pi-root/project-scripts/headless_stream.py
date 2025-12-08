@@ -15,6 +15,8 @@ class_names = ['autorack', 'boxcar', 'cargo', 'container', 'flatcar',
                'flatcar_bulkhead', 'gondola', 'hopper', 'locomotive',
                'passenger', 'tank']
 
+IMG_SIZE = 640  # Should match your model
+
 cap = None
 
 config = json.load(open("config.json"))
@@ -57,35 +59,78 @@ def preprocess(frame):
     # By returning img[None], you get shape (1, C, H, W).
     return img[None]
 
-def parse_output(outputs, conf_thres=0.5):
-    # Rewrite parse_output() for your YOLOv8 ONNX model. Based on your output shapes (1, 25200, 16)
-    # Suppose the model returns one output, shape (1, N, 6)
-    # Use only the first output
-    preds = outputs[0]  # shape: (1, 25200, 16)
-    preds = preds[0]     # remove batch dim → (25200, 16)
+def decode_yolo_output(pred, conf_thres=0.5):
+    """
+    pred shape: (N, 16)
+    Layout per row:
+      [x, y, w, h, conf_class0, conf_class1, ... conf_class10]
+    """
+    boxes = pred[:, 0:4]
+    scores = pred[:, 4:]
 
-    # Extract objectness and class probabilities
-    confs = preds[:, 4]  # objectness score
-    class_probs = preds[:, 5:]  # class probabilities
-    class_ids = np.argmax(class_probs, axis=1)
-    class_conf = np.max(class_probs, axis=1)
-
-    # Combined confidence
-    conf = confs * class_conf
+    class_ids = np.argmax(scores, axis=1)
+    conf = scores[np.arange(len(scores)), class_ids]
 
     # Filter by confidence threshold
     mask = conf > conf_thres
-    
-    return conf[mask], class_ids[mask]
 
-    # Previous parse_output logic for reference:
-    # # confidence = index 4; class = index 5
-    # confs = preds[:, 4]
-    # class_ids = preds[:, 5].astype(int)
+    return boxes[mask], conf[mask], class_ids[mask]
 
-    # # optional: filter out low-confidence
-    # mask = confs >= conf_thres
-    # return confs[mask], class_ids[mask]
+# -----------------------
+# Drawing
+# -----------------------
+def draw_boxes(frame, boxes, conf, class_ids):
+    h, w = frame.shape[:2]
+
+    for (x, y, bw, bh), c, cls in zip(boxes, conf, class_ids):
+        # YOLO normally outputs xywh normalized between 0–1
+        x1 = int((x - bw/2) * w)
+        y1 = int((y - bh/2) * h)
+        x2 = int((x + bw/2) * w)
+        y2 = int((y + bh/2) * h)
+
+        # clamp
+        x1 = max(0, min(w-1, x1))
+        y1 = max(0, min(h-1, y1))
+        x2 = max(0, min(w-1, x2))
+        y2 = max(0, min(h-1, y2))
+
+        label = f"{class_names[cls]} {c:.2f}"
+
+        cv2.rectangle(frame, (x1, y1), (x2, y2), (0,255,0), 2)
+        cv2.putText(frame, label, (x1, max(0,y1-5)),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,255,0), 2)
+
+    return frame
+
+
+# -----------------------
+# MJPEG generator
+# -----------------------
+def generate_stream():
+    global cap
+    while True:
+        ok, frame = cap.read()
+        if not ok:
+            continue
+
+        # Inference
+        img = preprocess(frame)
+        outputs = session.run(None, {input_name: img})
+
+        # Use your parse_output if preferred, or decode here
+        pred = outputs[0].reshape(-1, 16)  # YOLOv5 ONNX output
+        boxes, conf, ids = decode_yolo_output(pred)
+
+        frame = draw_boxes(frame, boxes, conf, ids)
+
+        ret, jpeg = cv2.imencode(".jpg", frame)
+        if not ret:
+            continue
+
+        yield (b"--frame\r\n"
+               b"Content-Type: image/jpeg\r\n\r\n" +
+               jpeg.tobytes() + b"\r\n")
 
 def generate_stream():
     global cap
@@ -127,5 +172,7 @@ def debug_feed():
 if __name__ == "__main__":
     print("Connecting to camera...")
     cap = connect_camera()
+    if not cap or not cap.isOpened():
+        raise RuntimeError("Failed to open camera.")
     print("Open http://192.168.0.1:5000/debug to view stream")
     app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
