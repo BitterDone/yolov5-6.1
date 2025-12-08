@@ -19,7 +19,7 @@ IMG_SIZE = 640  # Should match your model
 
 cap = None
 
-config = json.load(open("config.json"))
+config = json.load(open("/home/danbitter/yolov5-6.1/pi-root/project-scripts/config.json"))
 RTSP_URL = config["rtsp_url"]
 MODEL_PATH = "best.onnx"
 providers = ["CPUExecutionProvider"]
