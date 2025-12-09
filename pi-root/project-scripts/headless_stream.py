@@ -5,6 +5,7 @@ import time
 import numpy as np
 import onnxruntime as ort
 import json
+import random
 
 app = Flask(__name__)
 
@@ -15,7 +16,13 @@ class_names = ['autorack', 'boxcar', 'cargo', 'container', 'flatcar',
                'flatcar_bulkhead', 'gondola', 'hopper', 'locomotive',
                'passenger', 'tank']
 
-IMG_SIZE = 640  # Should match your model
+# Stable randomized colors for each class
+colors = [
+    (random.randint(30,255), random.randint(30,255), random.randint(30,255))
+    for _ in class_names
+]
+
+IMG_SIZE = 320  # Should match your model
 
 cap = None
 
@@ -85,7 +92,8 @@ def draw_boxes(frame, boxes, conf, class_ids):
     h, w = frame.shape[:2]
 
     for (x, y, bw, bh), c, cls in zip(boxes, conf, class_ids):
-        print("DETECTION:", "cls=", cls, "conf=", c, flush=True)
+        # Disable for performance
+        # print("DETECTION:", "cls=", cls, "conf=", c, flush=True)
         
         # YOLO normally outputs xywh normalized between 0–1
         x1 = int((x - bw/2) * w)
@@ -104,9 +112,18 @@ def draw_boxes(frame, boxes, conf, class_ids):
         else:
             label = f"{class_names[cls]} {c:.2f}"
 
-        cv2.rectangle(frame, (x1, y1), (x2, y2), (0,255,0), 2)
+        color = colors[cls]   # pick color based on class ID
+        cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
         cv2.putText(frame, label, (x1, max(0,y1-5)),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,255,0), 2)
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
+        
+        # Add a background rectangle behind the text (YOLO-style).
+
+        (text_w, text_h), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
+        cv2.rectangle(frame, (x1, y1 - text_h - 6), (x1 + text_w, y1), color, -1)
+        cv2.putText(frame, label, (x1, y1-2),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,0,0), 1)
+
 
     return frame
 
@@ -116,9 +133,14 @@ def draw_boxes(frame, boxes, conf, class_ids):
 # -----------------------
 def generate_stream():
     global cap
+    frame_id = 0
     while True:
         ok, frame = cap.read()
+        frame_id += 1
         if not ok:
+            continue
+
+        if frame_id % 3 != 0:   # skip 2 of every 3 frames
             continue
 
         # Inference
