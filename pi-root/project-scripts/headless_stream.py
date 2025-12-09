@@ -22,7 +22,7 @@ colors = [
     for _ in class_names
 ]
 
-IMG_SIZE = 320  # Should match your model
+IMG_SIZE = 640  # Should match your model
 
 cap = None
 
