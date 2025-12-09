@@ -14,7 +14,7 @@ app = Flask(__name__)
 
 class_names = ['autorack', 'boxcar', 'cargo', 'container', 'flatcar',
                'flatcar_bulkhead', 'gondola', 'hopper', 'locomotive',
-               'passenger', 'tank']
+               'passenger', 'tank', 'extra_12th']
 
 # Stable randomized colors for each class
 colors = [
